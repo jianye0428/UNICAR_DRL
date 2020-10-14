@@ -12,10 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-
-
 POS_MIN,POS_MAX = [-0.2,1.35,1.75],[0.2,1.75,1.75]
-
 
 class GraspEnv(object):
     def __init__(self,headless, control_mode ='joint_velocity'):
@@ -60,8 +57,6 @@ class GraspEnv(object):
         self.tip_target = Dummy('UnicarRobotArm_target')
         self.tip_pos = self.agent_ee_tip.get_position()
         
-
-
         # set a proper initial robot gesture or tip position
         if control_mode == 'end_position':
             initial_pos = [0, 1.5, 1.6]
@@ -81,7 +76,7 @@ class GraspEnv(object):
         '''
         #return np.array(self.agent.get_joint_positions()+self.agent.get_joint_velocities()+self.agent.get_position().tolist())          
                         # all 17
-        return np.array(self.agent.get_joint_positions()+self.agent.get_joint_velocities()+self.agent_ee_tip.get_position()+self.agent_ee_tip.get_orientation())  
+        return np.array(self.agent.get_joint_positions()+self.agent.get_joint_velocities()+self.agent_ee_tip.get_position()+self.agent_ee_tip.get_orientation())  #all 20
 
     def _is_holding(self):
         '''
@@ -194,14 +189,13 @@ class GraspEnv(object):
             self.reinit()
             done=True
 
-
         desired_position_tip = [0.0,1.5513,1.74]
         desired_orientation_tip = [-np.pi,0,0.001567]
         tip_x,tip_y,tip_z = self.agent_ee_tip.get_position()#end_effector position
         tip_row,tip_pitch,tip_yaw = self.agent_ee_tip.get_orientation()#end_effector orientation
         tx,ty,tz = self.target.get_position()#box position
         offset = 0.312 #augmented reward: offset of target position above the target object 
-        #sqr_distance = (ax-tx)**2 + (ay-ty)**2 + (az-(tz+offset))**2 #square distance between the gripper and the target object
+        #square distance between the gripper and the target object
         sqr_distance = np.sqrt((tip_x-desired_position_tip[0])**2 + (tip_y-desired_position_tip[1])**2 + (tip_z-desired_position_tip[2])**2)
         sqr_orientation=np.sqrt((tip_row-desired_orientation_tip[0])**2 + (tip_pitch-desired_orientation_tip[1])**2+(tip_yaw-desired_orientation_tip[2])**2)
 
@@ -230,7 +224,7 @@ class GraspEnv(object):
         else:
             pass
 
-        #the base reward is negative distance to target 
+        #the base reward is negative distance from suction to target 
         #reward -= (np.sqrt(sqr_distance))
 
         #case when the object is fall off the table
@@ -239,37 +233,13 @@ class GraspEnv(object):
             reward -= self.reward_offset
     
         # Augmented reward for orientation: better grasping gesture if the suction has vertical orientation to the target object
-        #Note: the frame of suction has a difference of pi/2 in z orientation as the frame of target
-        #desired_orientation = np.concatenate(([np.pi/2,0],[self.target.get_orientation()[2]]))
-        #desired_orientation_tip = [-np.pi,0,0.001567]
-        #desired_orientation = [0,0,-np.pi/2]
-        #rotation_penalty = -(np.exp(np.sum(np.abs(np.array(self.agent_ee_tip.get_orientation())-desired_orientation)))-1)
-        #rotation_penalty = -((np.exp(np.sum(np.abs(np.array(self.suction.get_orientation())-desired_orientation))/np.pi))-1)-0.1*(action[0]**2+action[1]**2+action[2]**2+action[3]**2+action[4]**2+action[5]**2)
-        #rotation_penalty = -np.sqrt((np.sum(np.abs(np.array(self.agent_ee_tip.get_orientation())-np.array(desired_orientation_tip)))))-0.1*(action[0]**2+action[1]**2+action[2]**2+action[3]**2+action[4]**2+action[5]**2+action[6]**2)
-        #reward -= np.sqrt((np.sum(np.abs(np.array(self.agent_ee_tip.get_orientation())-np.array(desired_orientation_tip)))))
-        desired_orientation_tip = [-np.pi,0,0.001567]
+        
         desired_position_tip = [0.0,1.5513,1.74]
         tip_x,tip_y,tip_z = self.agent_ee_tip.get_position()
         tip_row,tip_pitch,tip_yaw = self.agent_ee_tip.get_orientation()
-        #NEW POS ORIEN
-        #reward -= (np.sqrt((tip_x-desired_position_tip[0])**2) + np.sqrt((tip_y-desired_position_tip[1])**2) + np.sqrt((tip_z-desired_position_tip[2])**2) + np.sqrt((tip_row-desired_orientation_tip[0])**2) + np.sqrt((tip_pitch-desired_orientation_tip[1])**2)+np.sqrt((tip_yaw-desired_orientation_tip[2])**2))
-        #NEW POS only
-        #reward -= (np.sqrt((tip_x-desired_position_tip[0])**2) + np.sqrt((tip_y-desired_position_tip[1])**2) + np.sqrt((tip_z-desired_position_tip[2])**2))
-        #positon + orientation
+        
         reward -= (np.sqrt((tip_x-desired_position_tip[0])**2 + (tip_y-desired_position_tip[1])**2 + (tip_z-desired_position_tip[2])**2) + np.sqrt((tip_row-desired_orientation_tip[0])**2 + (tip_pitch-desired_orientation_tip[1])**2+(tip_yaw-desired_orientation_tip[2])**2))
-        #only position
-        #reward -= np.sqrt((tip_x-desired_position_tip[0])**2 + (tip_y-desired_position_tip[1])**2 + (tip_z-desired_position_tip[2])**2)
-        #only orientation
-        #reward -= np.sqrt((tip_row-desired_orientation_tip[0])**2 + (tip_pitch-desired_orientation_tip[1])**2+(tip_yaw-desired_orientation_tip[2])**2)
         
-        #rotation_penalty = -np.exp((((self.suction.get_orientation()[0]-desired_orientation[0]+np.pi)%(2*np.pi)-np.pi)**2+((self.suction.get_orientation()[1]-desired_orientation[1]+np.pi)%(2*np.pi)-np.pi)**2+((self.suction.get_orientation()[2]-desired_orientation[2]+np.pi)%(2*np.pi)-np.pi)**2))-0.1*(action[0]**2+action[1]**2+action[2]**2+action[3]**2+action[4]**2+action[5]**2)                   
-        #rotation_penalty = -np.exp((np.abs((self.suction.get_orientation()[0]-desired_orientation[0]+np.pi)%(2*np.pi)-np.pi)+np.abs((self.suction.get_orientation()[1]-desired_orientation[1]+np.pi)%(2*np.pi)-np.pi)+np.abs((self.suction.get_orientation()[2]-desired_orientation[2]+np.pi)%(2*np.pi)-np.pi))/np.pi)-0.1*(action[0]**2+action[1]**2+action[2]**2+action[3]**2+action[4]**2+action[5]**2)
-        
-        #rotation_norm = 0.02)))
-        #rotation_norm = 0.4
-        #rotation_norm = 0.4
-        #reward += rotation_norm*rotation_penalty
-
         #Penalty for collision with the table
         if self.suction.check_collision(self.table) or self.suction.check_collision(self.carbody) or self.agent.check_collision(self.table) or self.suction.check_collision(self.target) or self.agent.check_collision(self.target):
             reward -= self.penalty_offset
