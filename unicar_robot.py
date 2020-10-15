@@ -74,8 +74,6 @@ class GraspEnv(object):
         '''
         Return state containging arm joint positions/velocities & target position.
         '''
-        #return np.array(self.agent.get_joint_positions()+self.agent.get_joint_velocities()+self.agent.get_position().tolist())          
-                        # all 17
         return np.array(self.agent.get_joint_positions()+self.agent.get_joint_velocities()+self.agent_ee_tip.get_position()+self.agent_ee_tip.get_orientation())  #all 20
 
     def _is_holding(self):
@@ -88,7 +86,6 @@ class GraspEnv(object):
             return False
 
     def _move(self, action, bounding_offset=0.15, step_factor=0.2, max_itr=20, max_error=0.05, rotation_norm=5):
-        #pos = self.suction.get_position()
         pos = self.suction.get_position()
 
         if pos[0]+action[0] > POS_MIN[0]-bounding_offset and pos[0]+action[0] < POS_MAX[0]-bounding_offset \
@@ -125,7 +122,6 @@ class GraspEnv(object):
         '''
         Get a random position within a cuboid and set the target position
         '''
-       
         # set target object
         if random_target:
             pos = list(np.random.uniform(POS_MIN,POS_MAX))
@@ -226,7 +222,7 @@ class GraspEnv(object):
 
         #the base reward is negative distance from suction to target 
         #reward -= (np.sqrt(sqr_distance))
-
+        
         #case when the object is fall off the table
         if tz < self.initial_target_positions[2]-self.fall_down_offset:#tz is target(box) position in z direction
             done = True
