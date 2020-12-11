@@ -411,7 +411,7 @@ def plot(rewards):
     plt.clf()
 
 if __name__ == '__main__':
-
+    #hyperparameter setting
     replay_buffer_size = 1e6
     # the replay buffer is a class, have to use torch manager to make it a proxy for sharing across processes
     BaseManager.register('ReplayBuffer', ReplayBuffer)
